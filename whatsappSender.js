@@ -7,6 +7,7 @@ const api = require("./lib/api.js");
 const prisma = require("./lib/prisma.js");
 const { calculateDiscount } = require("./functions/calculateDiscount.js");
 const { formatPrice } = require("./functions/formatPrice.js");
+const { formatMessage } = require("./functions/formatMessage.js");
 
 const GROUP_ID = process.env.GROUP_ID;
 
@@ -48,8 +49,8 @@ client.on("ready", async () => {
 					try {
 						let options = {};
 
-						if (promo.image && fs.existsSync(`./uploads/${promo.image}`)) {
-							const imagePath = `./uploads/${promo.image}`;
+						if (promo.image && fs.existsSync(`./uploads/${promo.image}.jpg`)) {
+							const imagePath = `./uploads/${promo.image}.jpg`;
 							const imageBuffer = fs.readFileSync(imagePath);
 
 							const mimeType = mime.lookup(imagePath) || "image/jpeg";
@@ -61,51 +62,69 @@ client.on("ready", async () => {
 							options = { media };
 						}
 
-						let messageText = ``;
+						const promoJson = await formatMessage(promo.originalMessage);
+						const parsedJson = JSON.parse(promoJson);
 
-						if (promo.title) {
-							messageText += `${promo.title}\n\n`;
-						}
-
-						messageText += `${promo.description}\n\n`;
-
-						if (promo.oldPrice) {
-							messageText += `De: ~${formatPrice(promo.oldPrice)}~\n`;
-						}
-
-						messageText += `Por:\n`;
-						messageText += `🔥 *${formatPrice(promo.newPrice)}* 🔥 `;
-
-						if (promo.oldPrice) {
-							const discount = calculateDiscount(
-								promo.oldPrice,
-								promo.newPrice
+						if (
+							!parsedJson ||
+							typeof parsedJson !== "object" ||
+							Object.keys(parsedJson).length === 0
+						) {
+							console.log(
+								`❌ A promo ${promo.id} retornou o JSON como objeto vazio.`
 							);
-							messageText += `(${discount}% OFF)`;
+						} else {
+							const { title, productName, oldPrice, newPrice, link } =
+								parsedJson;
+							let messageText = ``;
+
+							if (title) {
+								messageText += `${title}\n\n`;
+							}
+
+							messageText += `${productName}\n\n`;
+
+							if (oldPrice) {
+								messageText += `De: ~${formatPrice(oldPrice)}~\n`;
+							}
+
+							messageText += `Por:\n`;
+							messageText += `🔥 *${formatPrice(newPrice)}* 🔥 `;
+
+							if (oldPrice) {
+								const discount = calculateDiscount(oldPrice, newPrice);
+								messageText += `(${discount}% OFF)`;
+							}
+
+							messageText += `\n\nCompre aqui: ${link}`;
+
+							const message = await client.sendMessage(
+								GROUP_ID,
+								messageText,
+								options
+							);
+
+							if (message.id) {
+								console.log("✅ Mensagem enviada com sucesso!", message.id);
+
+								await prisma.promotion.update({
+									data: {
+										title: title,
+										description: productName,
+										formatted: true,
+										link: link,
+										oldPrice: oldPrice,
+										newPrice: newPrice,
+										sendDate: new Date(),
+									},
+									where: {
+										id: promo.id,
+									},
+								});
+							}
+
+							console.log(`✅ Mensagem enviada: ${promoJson.productName}`);
 						}
-
-						messageText += `\n\nCompre aqui: ${promo.link}`;
-
-						const message = await client.sendMessage(
-							GROUP_ID,
-							messageText,
-							options
-						);
-
-						if (message.id) {
-							console.log("✅ Mensagem enviada com sucesso!", message.id);
-
-							await prisma.promotion.update({
-								data: {
-									sendDate: new Date(),
-								},
-								where: {
-									id: promo.id,
-								},
-							});
-						}
-
-						console.log(`✅ Mensagem enviada: ${promo.description}`);
 					} catch (error) {
 						console.error("❌ Erro ao enviar mensagem:", error);
 					}
@@ -121,24 +140,14 @@ client.on("ready", async () => {
 			console.error("Erro ao verificar promoções:", error);
 		}
 
-		// Rechama a função após 5 segundos
 		setTimeout(checkPromotions, 5000);
 	}
 
 	checkPromotions();
-
-	// setInterval(async () => {
-	// 	console.log("🔄 Verificando promoções não enviadas...");
-	// 	const response = await api.get("/promotions/last");
-
-	// 	console.log("RESPONSE: ", response)
-
-	// }, 15000);
 });
 
 function startWhatsappSender() {
 	client.initialize();
 }
 
-// Exporta a função e o client
 module.exports = { startWhatsappSender, client };

@@ -12,11 +12,11 @@ const formatMessage = async (message) => {
 				messages: [
 					{
 						role: "system",
-						content: "Vou te passar uma mensagem, cujo contexto é uma promoção enviada em um canal no telegram. Extraia informações estruturadas da mensagem em JSON.",
+						content: "Vou te passar uma mensagem, cujo contexto é uma promoção enviada em um canal no telegram. Extraia informações estruturadas da mensagem em JSON. Devolva apenas o JSON na resposta com os campos citados abaixo.",
 					},
 					{
 						role: "user",
-						content: `Extraia título, nome do produto, preço antigo, preço novo, link e nome da loja (de acordo com o link). Normalmente a mensagem da promoção possui descrição (nome do produto), preço antigo, novo preço (preço em promoção), link da loja virtual, pode possuir também um título (chamada ou manchete da promoção). Os preços eu quero que seja apenas número inteiro, ou seja, se o valor for 39,90, retorne 3990, se o valor for sem casas decimais, coloque duas casas decimais e deixe inteiro, como R$ 369 vira 36900. A mensagem da promoção é:\n\n${message}`,
+						content: `Extraia título, nome do produto, preço antigo, preço novo, cupom (caso houver), link e nome da loja (de acordo com o domínio do link) com os respectivos nomes: title, productName, oldPrice, newPrice, voucher, link, storeName. Normalmente a mensagem da promoção possui descrição (nome do produto), preço antigo, novo preço (preço em promoção), link da loja virtual, pode possuir também um título (chamada ou manchete da promoção). Os preços eu quero que seja apenas número inteiro, ou seja, se o valor for 39,90, retorne 3990, se o valor for sem casas decimais, coloque duas casas decimais e deixe inteiro, como R$ 369 vira 36900. A mensagem da promoção é:\n\n${message}`,
 					},
 				],
 				max_tokens: 300,

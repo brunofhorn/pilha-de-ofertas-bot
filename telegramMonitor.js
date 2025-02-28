@@ -3,8 +3,7 @@ const { TelegramClient } = require("telegram");
 const { StringSession } = require("telegram/sessions");
 const input = require("input");
 const fs = require("fs");
-const prisma = require("./lib/prisma.js");
-const { formatMessage } = require("./functions/formatMessage.js");
+const api = require("./lib/api.js");
 
 const API_ID = process.env.API_ID;
 const API_HASH = process.env.API_HASH;
@@ -32,7 +31,7 @@ const client = new TelegramClient(
 	}
 );
 
-(async () => {
+const telegramMonitor = async () => {
 	console.log("Iniciando o cliente Telegram...");
 
 	await client.start();
@@ -48,16 +47,12 @@ const client = new TelegramClient(
 
 	fs.writeFileSync(sessionFile, client.session.save());
 
-	console.log("✅ Conectado ao Telegram!");
-
 	client.addEventHandler(async (event) => {
 		const message = event.message;
 		if (!message) return;
 
 		const chat = await message.getChat();
 
-		console.log("MESSAGE: ", JSON.stringify(message ?? "{}"));
-		// console.log("CHAT:" , chat.id.toString(), chat.username, groupWhitelist.includes(chat.id), JSON.stringify(chat ?? "{}"))
 		if (
 			!groupWhitelist.includes(chat?.username?.toString() ?? "") &&
 			!groupWhitelist.includes(chat?.id?.toString() ?? "")
@@ -65,35 +60,37 @@ const client = new TelegramClient(
 			return;
 		}
 
-		formatMessage(message.message).then((data) =>
-			console.log("MENSAGEM FORMATADA: ", JSON.stringify(data, null, 2), data)
-		);
-
 		console.log(`📩 Nova mensagem em ${chat.title}: ${message.message}`);
 
-		let imagePath = null;
+		try {
+			let imagePath = null;
+			const imageName = `photo_${
+				message?.id?.toString() ?? crypto.randomUUID()
+			}_${chat?.id?.toString() ?? crypto.randomUUID()}`;
 
-		if (message.media && message.media.photo) {
-			console.log("📸 Foto detectada! Baixando...");
-			imagePath = `./uploads/photo_${message.id}.jpg`;
-			await client.downloadMedia(message.media, { outputFile: imagePath });
+			if (message.media && message.media.photo) {
+				console.log("📸 Foto detectada! Baixando...");
+				imagePath = `./uploads/${imageName}.jpg`;
+				await client.downloadMedia(message.media, { outputFile: imagePath });
+			}
+
+			const response = await api.post("/promotions/", {
+				originalMessage: message.message,
+				image: imageName,
+				channel: chat.title,
+			});
+
+			if (response.status === 201) {
+				console.log("✅ Mensagem salva no banco!");
+			} else {
+				console.log("❌ Ocorreu um erro ao tentar salvar a mensagem no banco.");
+			}
+		} catch (error) {
+			console.log("❌ Ocorreu um erro ao tentar salvar a mensagem.");
 		}
-
-		// Salva no banco
-		// await prisma.promotion.create({
-		//     data:{
-		//         title: '',
-		//         description: '',
-		//         oldPrice: '',
-		//         newPrice: '',
-		//         link: '',
-		//         sourceChannel: 'Telegram',
-		//         image: ''
-		//     }
-		// })
-
-		console.log("✅ Mensagem salva no banco!");
 	}, new TelegramClient.events.NewMessage());
 
 	console.log("📡 Monitorando mensagens...");
-})();
+};
+
+module.exports = { telegramMonitor };

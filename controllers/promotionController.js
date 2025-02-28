@@ -46,6 +46,43 @@ const sendPromotion = async (req, res) => {
 	}
 };
 
+const createPromotion = async (req, res) =>{
+	try {
+		const { 
+			originalMessage,  
+			formatted = false,
+			title = '', 
+			description = '',
+			oldPrice = 0, 
+			newPrice = 0,
+			link = '',
+			image = '',
+			sourceChannel = 'Telegram',
+			channel = ''
+		} = req.body;
+
+		const promotion = await prisma.promotion.create({
+			data:{
+				originalMessage,
+				formatted,
+				title,
+				description,
+				oldPrice,
+				newPrice,
+				link, 
+				image, 
+				sourceChannel,
+				image,
+				channel,
+			}
+		})
+
+		res.status(201).json(promotion)
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+}
+
 // export const getAllMessages = async (req, res) => {
 // 	try {
 // 		const messages = await prisma.message.findMany();
@@ -87,4 +124,4 @@ const sendPromotion = async (req, res) => {
 // 	}
 // };
 
-module.exports = { getLastPromotions, sendPromotion };
+module.exports = { getLastPromotions, sendPromotion, createPromotion };

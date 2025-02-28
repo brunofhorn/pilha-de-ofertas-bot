@@ -17,15 +17,18 @@ model Group {
 }
 
 model Promotion {
-  id            Int       @id @default(autoincrement())
-  title         String    @db.VarChar(255)
-  description   String    @db.VarChar(255)
-  oldPrice      Int
-  newPrice      Int
-  link          String
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now())
-  sendDate      DateTime?
-  sourceChannel String
+  id              Int       @id @default(autoincrement())
+  originalMessage String?
+  formatted       Boolean   @default(false)
+  title           String?   @db.VarChar(255)
+  description     String?   @db.VarChar(255)
+  oldPrice        Int?
+  newPrice        Int?
+  link            String?
+  image           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now())
+  sendDate        DateTime?
+  sourceChannel   String
+  channel         String
 }
