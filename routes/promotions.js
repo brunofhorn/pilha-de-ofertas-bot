@@ -4,7 +4,7 @@ const {
 	getLastPromotions,
 	sendPromotion,
 	createPromotion
-} = require("../controllers/promotionController.js");
+} = require("../controllers/promotion.js");
 
 const router = express.Router();
 

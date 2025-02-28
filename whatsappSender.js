@@ -76,6 +76,7 @@ client.on("ready", async () => {
 						} else {
 							const { title, productName, oldPrice, newPrice, link } =
 								parsedJson;
+
 							let messageText = ``;
 
 							if (title) {
@@ -121,9 +122,14 @@ client.on("ready", async () => {
 										id: promo.id,
 									},
 								});
-							}
 
-							console.log(`✅ Mensagem enviada: ${promoJson.productName}`);
+								if (
+									promo.image &&
+									fs.existsSync(`./uploads/${promo.image}.jpg`)
+								) {
+									fs.unlinkSync(`./uploads/${promo.image}.jpg`);
+								}
+							}
 						}
 					} catch (error) {
 						console.error("❌ Erro ao enviar mensagem:", error);

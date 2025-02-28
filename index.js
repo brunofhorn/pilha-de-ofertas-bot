@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const promotionRoutes = require("./routes/promotions.js");
+const groupsRoutes = require("./routes/groups.js");
 const { startWhatsappSender, client } = require("./whatsappSender.js");
 const { telegramMonitor } = require("./telegramMonitor.js");
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/promotions", promotionRoutes);
+app.use("/groups", groupsRoutes);
 
 app.get("/whatsapp-status", (req, res) => {
 	if (client) {
@@ -25,5 +27,5 @@ app.get("/whatsapp-status", (req, res) => {
 app.listen(PORT, () => {
 	console.log(`Servidor rodando na porta ${PORT}`);
 	startWhatsappSender();
-	// telegramMonitor()
+	telegramMonitor();
 });

@@ -4,20 +4,12 @@ const { StringSession } = require("telegram/sessions");
 const input = require("input");
 const fs = require("fs");
 const api = require("./lib/api.js");
+const { isWhitelisted } = require("./functions/isWhiteListed.js");
 
 const API_ID = process.env.API_ID;
 const API_HASH = process.env.API_HASH;
 
 const sessionFile = "./session.txt";
-
-const groupWhitelist = [
-	"promos4m",
-	"xetdaspromocoes",
-	"pilha_de_ofertas",
-	"-1002355442864",
-	"teste",
-	"2355442864",
-];
 
 const sessionString = fs.existsSync(sessionFile)
 	? fs.readFileSync(sessionFile, "utf8")
@@ -51,18 +43,17 @@ const telegramMonitor = async () => {
 		const message = event.message;
 		if (!message) return;
 
-		const chat = await message.getChat();
-
-		if (
-			!groupWhitelist.includes(chat?.username?.toString() ?? "") &&
-			!groupWhitelist.includes(chat?.id?.toString() ?? "")
-		) {
-			return;
-		}
-
-		console.log(`📩 Nova mensagem em ${chat.title}: ${message.message}`);
-
 		try {
+			const chat = await message.getChat();
+
+			const { data } = await api.get("/groups");
+
+			if (!isWhitelisted(chat, data)) {
+				return;
+			}
+
+			console.log(`📩 Nova mensagem em ${chat.title}: ${message.message}`);
+
 			let imagePath = null;
 			const imageName = `photo_${
 				message?.id?.toString() ?? crypto.randomUUID()
