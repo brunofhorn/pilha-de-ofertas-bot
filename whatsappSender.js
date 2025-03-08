@@ -8,6 +8,7 @@ const prisma = require("./lib/prisma.js");
 const { calculateDiscount } = require("./functions/calculateDiscount.js");
 const { formatPrice } = require("./functions/formatPrice.js");
 const { formatMessage } = require("./functions/formatMessage.js");
+const { generateLink } = require("./functions/generateLink.js");
 
 const GROUP_ID = process.env.GROUP_ID;
 
@@ -63,6 +64,7 @@ client.on("ready", async () => {
 						}
 
 						const promoJson = await formatMessage(promo.originalMessage);
+						console.log("PROMO JSON: ", promoJson)
 						const parsedJson = JSON.parse(promoJson);
 
 						if (
@@ -77,58 +79,66 @@ client.on("ready", async () => {
 							const { title, productName, oldPrice, newPrice, link } =
 								parsedJson;
 
-							let messageText = ``;
+							const affiliateLink = await generateLink(link)
 
-							if (title) {
-								messageText += `${title}\n\n`;
-							}
-
-							messageText += `${productName}\n\n`;
-
-							if (oldPrice) {
-								messageText += `De: ~${formatPrice(oldPrice)}~\n`;
-							}
-
-							messageText += `Por:\n`;
-							messageText += `🔥 *${formatPrice(newPrice)}* 🔥 `;
-
-							if (oldPrice) {
-								const discount = calculateDiscount(oldPrice, newPrice);
-								messageText += `(${discount}% OFF)`;
-							}
-
-							messageText += `\n\nCompre aqui: ${link}`;
-
-							const message = await client.sendMessage(
-								GROUP_ID,
-								messageText,
-								options
-							);
-
-							if (message.id) {
-								console.log("✅ Mensagem enviada com sucesso!", message.id);
-
-								await prisma.promotion.update({
-									data: {
-										title: title,
-										description: productName,
-										formatted: true,
-										link: link,
-										oldPrice: oldPrice,
-										newPrice: newPrice,
-										sendDate: new Date(),
-									},
-									where: {
-										id: promo.id,
-									},
-								});
-
-								if (
-									promo.image &&
-									fs.existsSync(`./uploads/${promo.image}.jpg`)
-								) {
-									fs.unlinkSync(`./uploads/${promo.image}.jpg`);
+							if(affiliateLink){
+								let messageText = ``;
+	
+								if (title) {
+									messageText += `${title}\n\n`;
 								}
+	
+								messageText += `${productName}\n\n`;
+	
+								if (oldPrice) {
+									messageText += `De: ~${formatPrice(oldPrice)}~\n`;
+								}
+	
+								messageText += `Por:\n`;
+								messageText += `🔥 *${formatPrice(newPrice)}* 🔥 `;
+	
+								if (oldPrice) {
+									const discount = calculateDiscount(oldPrice, newPrice);
+									messageText += `(${discount}% OFF)`;
+								}
+	
+								
+								messageText += `\n\nCompre aqui: ${affiliateLink}`;
+	
+	
+								const message = await client.sendMessage(
+									GROUP_ID,
+									messageText,
+									options
+								);
+	
+								if (message.id) {
+									console.log("✅ Mensagem enviada com sucesso!", message.id);
+	
+									await prisma.promotion.update({
+										data: {
+											title: title,
+											description: productName,
+											formatted: true,
+											link: link,
+											oldPrice: oldPrice,
+											newPrice: newPrice,
+											sendDate: new Date(),
+										},
+										where: {
+											id: promo.id,
+										},
+									});
+	
+									if (
+										promo.image &&
+										fs.existsSync(`./uploads/${promo.image}.jpg`)
+									) {
+										fs.unlinkSync(`./uploads/${promo.image}.jpg`);
+									}
+								}
+							}else{
+								console.error(`❌ O link da promoção ${promo.id} está quebrado.`)
 							}
 						}
 					} catch (error) {

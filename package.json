@@ -12,6 +12,7 @@
     "license": "ISC",
     "dependencies": {
         "@prisma/client": "^6.4.1",
+        "amazon-pa-api50": "^0.2.0",
         "axios": "^1.8.1",
         "body-parser": "^1.20.3",
         "child_process": "^1.0.2",
@@ -21,7 +22,9 @@
         "input": "^1.0.1",
         "mime-types": "^2.1.35",
         "multer": "^1.4.5-lts.1",
+        "paapi5-nodejs-sdk": "^1.1.0",
         "pm2": "^5.4.3",
+        "puppeteer": "^24.3.0",
         "qrcode-terminal": "^0.12.0",
         "telegram": "^2.26.22",
         "whatsapp-web.js": "^1.26.0"

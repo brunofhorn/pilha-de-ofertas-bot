@@ -1,0 +1,16 @@
+{
+    "value": "8af1c75a868fdfae",
+    "inactiveAt": 1740903730792,
+    "expiresAt": 1740910754592,
+    "updatedAt": 1740901930792,
+    "sessionReplayMode": 0,
+    "sessionReplaySentFirstChunk": false,
+    "sessionTraceMode": 1,
+    "traceHarvestStarted": true,
+    "loggingMode": 0,
+    "serverTimeDiff": -522,
+    "custom": {
+      "enduser.id": "172614726"
+    }
+  }
+  
