@@ -12,7 +12,7 @@ const formatMessage = async (message) => {
 				messages: [
 					{
 						role: "system",
-						content: "Vou te passar uma mensagem, cujo contexto é uma promoção enviada em um canal no telegram. Extraia informações estruturadas da mensagem em JSON. Devolva apenas o JSON na resposta com os campos citados abaixo.",
+						content: "Vou te passar uma mensagem, cujo contexto é uma promoção enviada em um canal no telegram. Extraia informações estruturadas da mensagem em JSON. Devolva apenas o JSON na resposta com os campos citados abaixo. Não coloque nenhum campo adicional ou explicação, somente o JSON com os campos informados.",
 					},
 					{
 						role: "user",
