@@ -156,7 +156,7 @@ client.on("ready", async () => {
 			console.error("Erro ao verificar promoções:", error);
 		}
 
-		setTimeout(checkPromotions, 5000);
+		setTimeout(checkPromotions, 1000 * 60 * 5);
 	}
 
 	checkPromotions();
