@@ -12,6 +12,7 @@ const { generateLink } = require("./functions/generateLink.js");
 
 const GROUP_ID = process.env.GROUP_ID;
 let client;
+let promotionCheckInterval = null;
 
 function startWhatsappSender() {
 	if (client) {
@@ -48,6 +49,8 @@ function startWhatsappSender() {
 	});
 
 	async function checkPromotions() {
+		if (!client) return;
+
 		try {
 			console.log("🔄 Verificando promoções não enviadas...");
 			const response = await api.get("/promotions/last");
@@ -165,7 +168,7 @@ function startWhatsappSender() {
 			console.error("Erro ao verificar promoções:", error);
 		}
 
-		setTimeout(checkPromotions, 1000 * 60 * 5);
+		promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
 	}
 
 	client.initialize();
@@ -179,6 +182,13 @@ function stopWhatsappSender() {
     console.log("🛑 Parando WhatsApp...");
     client.destroy();
     client = null;
+
+	if (promotionCheckInterval) {
+        clearTimeout(promotionCheckInterval);
+        promotionCheckInterval = null;
+    }
+
+	console.log("✅ WhatsAppSender foi completamente parado!");
 }
 
 module.exports = { startWhatsappSender, stopWhatsappSender };

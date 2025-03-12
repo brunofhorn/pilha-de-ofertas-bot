@@ -16,6 +16,7 @@ const sessionString = fs.existsSync(sessionFile)
 
 let client = null;
 let isRunning = false;
+let messageHandler = null;
 
 const startTelegramMonitor = async () => {
 	if (isRunning) {
@@ -40,8 +41,6 @@ const startTelegramMonitor = async () => {
 
 	await client.start();
 
-	console.log("✅ Conectado ao Telegram!");
-
 	// await client.start({
 	//     phoneNumber: "+5548984454934",
 	//     password: async () => await input.text("Digite sua senha (se necessário): "),
@@ -52,10 +51,12 @@ const startTelegramMonitor = async () => {
 	fs.writeFileSync(sessionFile, client.session.save());
 
 	isRunning = true;
+	console.log("✅ Conectado ao Telegram!");
 
 	client.addEventHandler(async (event) => {
-		const message = event.message;
-		if (!message) return;
+		if (!isRunning) return;
+        const message = event.message;
+        if (!message) return;
 
 		try {
 			const chat = await message.getChat();
@@ -99,20 +100,25 @@ const startTelegramMonitor = async () => {
 };
 
 async function stopTelegramMonitor() {
-    if (!isRunning) {
-        console.log("⚠️ Telegram Monitor já está parado.");
-        return;
+	if (!isRunning) {
+		console.log("⚠️ Telegram Monitor já está parado.");
+		return;
+	}
+
+	console.log("⛔ Parando o Telegram Monitor...");
+	isRunning = false;
+
+	if (client && messageHandler) {
+        client.removeEventHandler(messageHandler, new TelegramClient.events.NewMessage());
+        messageHandler = null;
     }
 
-    console.log("⛔ Parando o Telegram Monitor...");
-    isRunning = false;
-
-    if (client) {
-        await client.disconnect(); // Desconecta do Telegram
+	if (client) {
+        await client.disconnect();
         client = null;
     }
 
-    console.log("✅ Telegram Monitor parado.");
+	console.log("✅ Telegram Monitor parado.");
 }
 
 module.exports = { startTelegramMonitor, stopTelegramMonitor };
