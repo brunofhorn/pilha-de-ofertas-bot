@@ -11,32 +11,41 @@ const { formatMessage } = require("./functions/formatMessage.js");
 const { generateLink } = require("./functions/generateLink.js");
 
 const GROUP_ID = process.env.GROUP_ID;
+let client;
 
-const client = new Client({
-	authStrategy: new LocalAuth(),
-	puppeteer: {
-		headless: true,
-		args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
-	},
-});
+function startWhatsappSender() {
+	if (client) {
+        console.log("⚠ O WhatsApp já está rodando!");
+        return;
+    }
 
-client.on("qr", (qr) => {
-	console.log("Escaneie este QR Code para conectar:");
-	qrcode.generate(qr, { small: true });
-});
+	client = new Client({
+		authStrategy: new LocalAuth(),
+		puppeteer: {
+			headless: true,
+			args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+		},
+	});
 
-client.on("auth_failure", (message) => {
-	console.log("❌ Falha na autenticação. Tentando novamente...");
-	client.destroy(); // Destrói a instância atual
-	client.initialize(); // Reinicia o cliente
-});
-
-client.on("disconnected", (reason) => {
-	console.warn("⚠ Cliente desconectado:", reason);
-});
-
-client.on("ready", async () => {
-	console.log("✅ WhatsApp conectado!");
+	client.on("qr", (qr) => {
+		console.log("Escaneie este QR Code para conectar:");
+		qrcode.generate(qr, { small: true });
+	});
+	
+	client.on("auth_failure", (message) => {
+		console.log("❌ Falha na autenticação. Tentando novamente...");
+		client.destroy(); // Destrói a instância atual
+		client.initialize(); // Reinicia o cliente
+	});
+	
+	client.on("disconnected", (reason) => {
+		console.warn("⚠ Cliente desconectado:", reason);
+	});
+	
+	client.on("ready", async () => {
+		console.log("✅ WhatsApp conectado!");	
+		checkPromotions();
+	});
 
 	async function checkPromotions() {
 		try {
@@ -159,11 +168,17 @@ client.on("ready", async () => {
 		setTimeout(checkPromotions, 1000 * 60 * 5);
 	}
 
-	checkPromotions();
-});
-
-function startWhatsappSender() {
 	client.initialize();
 }
 
-module.exports = { startWhatsappSender, client };
+function stopWhatsappSender() {
+    if (!client) {
+        console.log("⚠ O WhatsApp já está parado!");
+        return;
+    }
+    console.log("🛑 Parando WhatsApp...");
+    client.destroy();
+    client = null;
+}
+
+module.exports = { startWhatsappSender, stopWhatsappSender };

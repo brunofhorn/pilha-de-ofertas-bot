@@ -8,23 +8,35 @@ const { isWhitelisted } = require("./functions/isWhiteListed.js");
 
 const API_ID = process.env.API_ID;
 const API_HASH = process.env.API_HASH;
-
 const sessionFile = "./session.txt";
 
 const sessionString = fs.existsSync(sessionFile)
 	? fs.readFileSync(sessionFile, "utf8")
 	: "";
-const client = new TelegramClient(
-	new StringSession(sessionString),
-	Number(API_ID),
-	API_HASH,
-	{
-		connectionRetries: 5,
-	}
-);
 
-const telegramMonitor = async () => {
+let client = null;
+let isRunning = false;
+
+const startTelegramMonitor = async () => {
+	if (isRunning) {
+		console.log("⚠️ Telegram Monitor já está rodando.");
+		return;
+	}
+
 	console.log("Iniciando o cliente Telegram...");
+
+	const sessionString = fs.existsSync(sessionFile)
+		? fs.readFileSync(sessionFile, "utf8")
+		: "";
+
+	client = new TelegramClient(
+		new StringSession(sessionString),
+		Number(API_ID),
+		API_HASH,
+		{
+			connectionRetries: 5,
+		}
+	);
 
 	await client.start();
 
@@ -38,6 +50,8 @@ const telegramMonitor = async () => {
 	// });
 
 	fs.writeFileSync(sessionFile, client.session.save());
+
+	isRunning = true;
 
 	client.addEventHandler(async (event) => {
 		const message = event.message;
@@ -84,4 +98,21 @@ const telegramMonitor = async () => {
 	console.log("📡 Monitorando mensagens...");
 };
 
-module.exports = { telegramMonitor };
+async function stopTelegramMonitor() {
+    if (!isRunning) {
+        console.log("⚠️ Telegram Monitor já está parado.");
+        return;
+    }
+
+    console.log("⛔ Parando o Telegram Monitor...");
+    isRunning = false;
+
+    if (client) {
+        await client.disconnect(); // Desconecta do Telegram
+        client = null;
+    }
+
+    console.log("✅ Telegram Monitor parado.");
+}
+
+module.exports = { startTelegramMonitor, stopTelegramMonitor };
