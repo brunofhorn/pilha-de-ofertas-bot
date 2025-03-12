@@ -1,84 +1,46 @@
+const { default: axios } = require("axios");
+
 require("dotenv").config();
-const puppeteer = require("puppeteer");
-const fs = require("fs");
 
 const MERCADO_LIVRE_PARTNER_TAG = process.env.MERCADO_LIVRE_PARTNER_TAG;
 
 const generateMercadoLivreAffiliateLink = async (url) => {
 	try {
-		const cookies = JSON.parse(fs.readFileSync("ml-cookies.json", "utf8"));
+		const urlApi =
+			"https://www.mercadolivre.com.br/affiliate-program/api/affiliates/v1/createUrls";
 
-		// Inicia o navegador
-		const browser = await puppeteer.launch({ headless: false });
-		const page = await browser.newPage();
+		const headers = {
+			Accept: "application/json, text/plain, */*",
+			"Accept-Encoding": "gzip, deflate, br, zstd",
+			"Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+			"Cache-Control": "no-cache",
+			"Content-Type": "application/json",
+			Origin: "https://www.mercadolivre.com.br",
+			Referer: "https://www.mercadolivre.com.br/afiliados/linkbuilder",
+			"User-Agent":
+				"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 Edg/133.0.0.0",
+		};
 
-		// Carrega os cookies no navegador
-		await page.setCookie(...cookies);
-
-		// Acessa a página do Mercado Livre (já deve estar logado)
-		await page.goto("https://www.mercadolivre.com.br/afiliados/linkbuilder");
-
-		// Verificar se está logado, ou se deve redirecionar para o login
-		const isLoggedIn = await page.evaluate(() => {
-			return !!document.querySelector('button[data-testid="user-id"]');
+		const body = JSON.stringify({
+			urls: [url],
 		});
 
-		if (isLoggedIn) {
-			console.log("Usuário logado, indo para o link builder...");
+		try {
+			const response = await axios.post(urlApi, body, { headers });
 
-			// Acessar o link builder de afiliados
-			await page.goto("https://www.mercadolivre.com.br/afiliados/linkbuilder");
+			console.log("RESPONSE: ", response);
 
-			// Aguardar a página carregar
-			await page.waitForSelector('input[name="productUrl"]'); // Espera o input do URL do produto carregar
-
-			// Digitar o URL do produto no campo de URL
-			await page.type('input[name="productUrl"]', url);
-
-			// Aguardar e clicar no botão para gerar o link
-			await page.waitForSelector('button[type="submit"]');
-			await page.click('button[type="submit"]');
-
-			// Aguardar a resposta do link gerado
-			await page.waitForSelector(".generated-link"); // Espera o link gerado
-
-			// Extrair o link de afiliado
-			const affiliateLink = await page.evaluate(() => {
-				const linkElement = document.querySelector(".generated-link input");
-				return linkElement ? linkElement.value : null;
-			});
-
-			if (affiliateLink) {
-				console.log("Link de afiliado gerado: ", affiliateLink);
-				return affiliateLink;
-			} else {
-				console.log("Não foi possível gerar o link de afiliado.");
+			if (!response.ok) {
+				console.error("Erro na requisição:", response.statusText);
 				return null;
 			}
-		} else {
-			console.log("Usuário não logado, indo para o login...");
 
-			// Se não estiver logado, redireciona para o login
-			await page.goto("https://www.mercadolivre.com/jms/mlb/lgz/login");
-
-			// Aguardar o carregamento da página de login
-			await page.waitForSelector('input[name="user_id"]'); // Espera o campo de usuário carregar
-
-			// Aqui você pode automatizar o login, mas isso vai depender dos dados de login que você tem
-			// Preencher os campos de login manualmente ou usar a funcionalidade de cookies localStorage já carregados
-			console.log("Você precisa logar manualmente para continuar...");
-
-			// Não prosseguir com mais ações até que o login seja feito manualmente
-			const cookies = await page.cookies();
-
-			// Salva os cookies em um arquivo JSON
-			fs.writeFileSync("ml-cookies.json", JSON.stringify(cookies, null, 2));
-
-			console.log("Cookies salvos com sucesso!");
+			const data = await response.json();
+			return data.generatedUrls?.[0] ?? null;
+		} catch (error) {
+			console.error("Erro ao gerar link afiliado:", error);
+			return null;
 		}
-
-		// Fechar o navegador após a execução
-		await browser.close();
 	} catch (error) {
 		console.error("Erro ao gerar link de afiliado:", error.message);
 		return null;
