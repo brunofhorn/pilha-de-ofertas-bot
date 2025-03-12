@@ -11,24 +11,43 @@ const generateMercadoLivreAffiliateLink = async (url) => {
 		});
 
 		const page = await browser.newPage();
-		await page.goto(url);
-		await page.waitForSelector('.poly-action-links__action--button a'); 
 
-		const productUrl = await page.$eval(
-			'.poly-action-links__action--button a',
-			(element) => element.href 
-		);
+		await page.goto("https://mercadolivre.com.br");
+		const loginButton = await page.$('a[data-link-id="login"]');
 
-		await page.goto(productUrl);
-		await page.click('.generate_link_button');
+		if (loginButton) {
+			console.log(
+				"Usuário NÃO está logado. Redirecionando para a página de login..."
+			);
+			await page.click('a[data-link-id="login"]'); // Simula o clique no botão de login
+			await page.waitForTimeout(5000);
+			await browser.close();
+		} else {
+			await page.goto(url);
+			await page.waitForSelector(".poly-action-links__action--button a");
 
-		await page.waitForSelector('textarea[data-testid="text-field__label_link"]');
+			const productUrl = await page.$eval(
+				".poly-action-links__action--button a",
+				(element) => element.href
+			);
 
-  		const textareaValue = await page.$eval('textarea[data-testid="text-field__label_link"]', (textarea) => textarea.value);
+			await page.goto(productUrl);
+			await page.click(".generate_link_button");
 
-		await browser.close();
+			await page.waitForSelector(
+				'textarea[data-testid="text-field__label_link"]'
+			);
 
-		return textareaValue ?? null
+			const textareaValue = await page.$eval(
+				'textarea[data-testid="text-field__label_link"]',
+				(textarea) => textarea.value
+			);
+
+			await page.waitForTimeout(5000);
+			await browser.close();
+
+			return textareaValue ?? null;
+		}
 	} catch (error) {
 		console.error("Erro ao gerar link de afiliado:", error.message);
 		return null;
