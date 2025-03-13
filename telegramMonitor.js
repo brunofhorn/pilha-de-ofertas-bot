@@ -10,10 +10,6 @@ const API_ID = process.env.API_ID;
 const API_HASH = process.env.API_HASH;
 const sessionFile = "./session.txt";
 
-const sessionString = fs.existsSync(sessionFile)
-	? fs.readFileSync(sessionFile, "utf8")
-	: "";
-
 let client = null;
 let isRunning = false;
 let messageHandler = null;

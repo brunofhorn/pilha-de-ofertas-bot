@@ -9,6 +9,7 @@ const { calculateDiscount } = require("./functions/calculateDiscount.js");
 const { formatPrice } = require("./functions/formatPrice.js");
 const { formatMessage } = require("./functions/formatMessage.js");
 const { generateLink } = require("./functions/generateLink.js");
+const { sendMessageToTelegram } = require("./telegramSender.js");
 
 const GROUP_ID = process.env.GROUP_ID;
 let client;
@@ -16,9 +17,9 @@ let promotionCheckInterval = null;
 
 function startWhatsappSender() {
 	if (client) {
-        console.log("⚠ O WhatsApp já está rodando!");
-        return;
-    }
+		console.log("⚠ O WhatsApp já está rodando!");
+		return;
+	}
 
 	client = new Client({
 		authStrategy: new LocalAuth(),
@@ -32,19 +33,19 @@ function startWhatsappSender() {
 		console.log("Escaneie este QR Code para conectar:");
 		qrcode.generate(qr, { small: true });
 	});
-	
+
 	client.on("auth_failure", (message) => {
 		console.log("❌ Falha na autenticação. Tentando novamente...");
 		client.destroy(); // Destrói a instância atual
 		client.initialize(); // Reinicia o cliente
 	});
-	
+
 	client.on("disconnected", (reason) => {
 		console.warn("⚠ Cliente desconectado:", reason);
 	});
-	
+
 	client.on("ready", async () => {
-		console.log("✅ WhatsApp conectado!");	
+		console.log("✅ WhatsApp conectado!");
 		checkPromotions();
 	});
 
@@ -61,9 +62,10 @@ function startWhatsappSender() {
 				for (const promo of promotions) {
 					try {
 						let options = {};
+						let imagePath = null;
 
 						if (promo.image && fs.existsSync(`./uploads/${promo.image}.jpg`)) {
-							const imagePath = `./uploads/${promo.image}.jpg`;
+							imagePath = `./uploads/${promo.image}.jpg`;
 							const imageBuffer = fs.readFileSync(imagePath);
 
 							const mimeType = mime.lookup(imagePath) || "image/jpeg";
@@ -76,7 +78,6 @@ function startWhatsappSender() {
 						}
 
 						const promoJson = await formatMessage(promo.originalMessage);
-						console.log("PROMO JSON: ", promoJson)
 						const parsedJson = JSON.parse(promoJson);
 
 						if (
@@ -91,42 +92,55 @@ function startWhatsappSender() {
 							const { title, productName, oldPrice, newPrice, link } =
 								parsedJson;
 
-							const affiliateLink = await generateLink(link)
+							const affiliateLink = await generateLink(
+								Array.isArray(link) ? link[0] : link
+							);
 
-							if(affiliateLink){
+							if (affiliateLink) {
 								let messageText = ``;
-	
+
 								if (title) {
 									messageText += `${title}\n\n`;
 								}
-	
+
 								messageText += `${productName}\n\n`;
-	
+
 								if (oldPrice) {
 									messageText += `De: ~${formatPrice(oldPrice)}~\n`;
 								}
-	
+
 								messageText += `Por:\n`;
 								messageText += `🔥 *${formatPrice(newPrice)}* 🔥 `;
-	
+
 								if (oldPrice) {
 									const discount = calculateDiscount(oldPrice, newPrice);
 									messageText += `(${discount}% OFF)`;
 								}
-	
-								
+
 								messageText += `\n\nCompre aqui: ${affiliateLink}`;
-	
-	
+
 								const message = await client.sendMessage(
 									GROUP_ID,
 									messageText,
 									options
 								);
-	
+
 								if (message.id) {
-									console.log("✅ Mensagem enviada com sucesso!", message.id);
-	
+									const sendMessageTelegram = await sendMessageToTelegram(
+										messageText,
+										imagePath
+									);
+
+									if (sendMessageTelegram) {
+										console.log(
+											"✅ Mensagem enviada com sucesso para o telegram!"
+										);
+									}
+
+									console.log(
+										"✅ Mensagem enviada com sucesso para o whatsapp!"
+									);
+
 									await prisma.promotion.update({
 										data: {
 											title: title,
@@ -141,16 +155,18 @@ function startWhatsappSender() {
 											id: promo.id,
 										},
 									});
-	
-									if (
-										promo.image &&
-										fs.existsSync(`./uploads/${promo.image}.jpg`)
-									) {
-										fs.unlinkSync(`./uploads/${promo.image}.jpg`);
-									}
+
+									// if (
+									// 	promo.image &&
+									// 	fs.existsSync(`./uploads/${promo.image}.jpg`)
+									// ) {
+									// 	fs.unlinkSync(`./uploads/${promo.image}.jpg`);
+									// }
 								}
-							}else{
-								console.error(`❌ O link da promoção ${promo.id} está quebrado.`)
+							} else {
+								console.error(
+									`❌ O link da promoção ${promo.id} está quebrado.`
+								);
 							}
 						}
 					} catch (error) {
@@ -175,18 +191,18 @@ function startWhatsappSender() {
 }
 
 function stopWhatsappSender() {
-    if (!client) {
-        console.log("⚠ O WhatsApp já está parado!");
-        return;
-    }
-    console.log("🛑 Parando WhatsApp...");
-    client.destroy();
-    client = null;
+	if (!client) {
+		console.log("⚠ O WhatsApp já está parado!");
+		return;
+	}
+	console.log("🛑 Parando WhatsApp...");
+	client.destroy();
+	client = null;
 
 	if (promotionCheckInterval) {
-        clearTimeout(promotionCheckInterval);
-        promotionCheckInterval = null;
-    }
+		clearTimeout(promotionCheckInterval);
+		promotionCheckInterval = null;
+	}
 
 	console.log("✅ WhatsAppSender foi completamente parado!");
 }
