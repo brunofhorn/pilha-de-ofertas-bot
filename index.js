@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const promotionRoutes = require("./routes/promotions.js");
 const groupsRoutes = require("./routes/groups.js");
 const servicesRoutes = require("./routes/services.js")
+const qrCodeRoutes = require("./routes/qrcode.js")
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -24,6 +25,7 @@ app.get("/whatsapp-status", (req, res) => {
 });
 
 app.use("/services", servicesRoutes);
+app.use("/", qrCodeRoutes)
 
 app.listen(PORT, () => {
 	console.log(`Servidor rodando na porta ${PORT}`);

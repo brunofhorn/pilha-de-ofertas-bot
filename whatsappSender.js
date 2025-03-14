@@ -1,6 +1,7 @@
 require("dotenv").config();
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
+const qrCodeStore = require("./services/qrCodeStore.js");
 const mime = require("mime-types");
 const fs = require("fs");
 const api = require("./lib/api.js");
@@ -31,6 +32,7 @@ function startWhatsappSender() {
 
 	client.on("qr", (qr) => {
 		console.log("Escaneie este QR Code para conectar:");
+		qrCodeStore.setQr(qr);
 		qrcode.generate(qr, { small: true });
 	});
 
