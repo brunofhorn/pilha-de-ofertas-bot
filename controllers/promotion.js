@@ -11,7 +11,7 @@ const getLastPromotions = async (req, res) => {
 	try {
 		const promotions = await prisma.promotion.findMany({
 			where: { sendDate: null },
-			take: 5,
+			take: 3,
 			orderBy: { createdAt: "desc" },
 		});
 		res.json(promotions);

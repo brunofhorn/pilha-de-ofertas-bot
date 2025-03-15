@@ -35,7 +35,7 @@ const formatMessage = async (message) => {
             return JSON.stringify("{}")
         }
 	} catch (error) {
-		console.error("Erro:", error.response?.data || error.message);
+		console.error("Erro on format message in AI:", error.response?.data || error.message);
         return JSON.stringify("{}")
 	}
 };

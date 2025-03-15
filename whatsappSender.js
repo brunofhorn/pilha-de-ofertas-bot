@@ -2,15 +2,16 @@ require("dotenv").config();
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const qrCodeStore = require("./services/qrCodeStore.js");
-const mime = require("mime-types");
 const fs = require("fs");
 const api = require("./lib/api.js");
 const prisma = require("./lib/prisma.js");
-const { calculateDiscount } = require("./functions/calculateDiscount.js");
-const { formatPrice } = require("./functions/formatPrice.js");
 const { formatMessage } = require("./functions/formatMessage.js");
 const { generateLink } = require("./functions/generateLink.js");
 const { sendMessageToTelegram } = require("./telegramSender.js");
+const {
+	formatMessageToWhatsapp,
+} = require("./functions/messages/formatMessageToWhatsapp.js");
+const { formatMessageToTelegram } = require("./functions/messages/formatMessageToTelegram.js");
 
 const GROUP_ID = process.env.WHATSAPP_GROUP_ID;
 let client;
@@ -64,7 +65,6 @@ function startWhatsappSender() {
 				for (const promo of promotions) {
 					try {
 						let options = {};
-						let imagePath = null;
 
 						if (promo.image) {
 							const base64Data = promo.image.startsWith("data:")
@@ -93,58 +93,37 @@ function startWhatsappSender() {
 								`❌ A promo ${promo.id} retornou o JSON como objeto vazio.`
 							);
 						} else {
-							const { title, productName, oldPrice, newPrice, link } =
-								parsedJson;
+							const { title, productName, oldPrice, newPrice, link } = parsedJson;
 
 							const affiliateLink = await generateLink(
 								Array.isArray(link) ? link[0] : link
 							);
 
 							if (affiliateLink) {
-								let messageText = ``;
-
-								if (title) {
-									messageText += `${title}\n\n`;
-								}
-
-								messageText += `*${productName}*\n\n`;
-
-								if (oldPrice) {
-									messageText += `De: ~${formatPrice(oldPrice)}~\n`;
-								}
-
-								messageText += `Por:\n`;
-								messageText += `🔥 *${formatPrice(newPrice)}* 🔥 `;
-
-								if (oldPrice) {
-									const discount = calculateDiscount(oldPrice, newPrice);
-									messageText += `(${discount}% OFF)`;
-								}
-
-								messageText += `\n\n🛍️ Compre aqui: ${affiliateLink}`;
-								messageText += `\n\n⚠️ Aproveite que a oferta é por tempo limitado!`
+								const whatsappMessage = await formatMessageToWhatsapp(parsedJson, affiliateLink);
+								const telegramMessage = await formatMessageToTelegram(parsedJson, affiliateLink)
 
 								const message = await client.sendMessage(
 									GROUP_ID,
-									messageText,
+									whatsappMessage,
 									options
 								);
 
 								if (message.id) {
-									const sendMessageTelegram = await sendMessageToTelegram(
-										messageText,
-										promo.image
+									console.log(
+										"✅ Mensagem enviada com sucesso para o whatsapp!"
 									);
 
+									const sendMessageTelegram = await sendMessageToTelegram(
+										telegramMessage,
+										promo.image
+									);
+									
 									if (sendMessageTelegram) {
 										console.log(
 											"✅ Mensagem enviada com sucesso para o telegram!"
 										);
 									}
-
-									console.log(
-										"✅ Mensagem enviada com sucesso para o whatsapp!"
-									);
 
 									await prisma.promotion.update({
 										data: {
@@ -172,19 +151,19 @@ function startWhatsappSender() {
 					}
 				}
 			} else {
-				console.log(
+				console.error(
 					"❌ Erro ao tentar listar as últimas promoções. ",
 					response.status,
 					response.statusText
 				);
 			}
 		} catch (error) {
-			console.error("Erro ao verificar promoções:", error);
+			console.error("❌ Erro ao verificar promoções:", error);
 		}
 
 		// const now = new Date();
 		// const currentHour = now.getHours();
-	
+
 		// if (currentHour >= 8 && currentHour < 22) {
 		// 	promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
 		// } else {
@@ -195,7 +174,7 @@ function startWhatsappSender() {
 		// 	}
 		// 	const delay = nextRun.getTime() - now.getTime();
 		// 	console.log(`⏳ Fora do horário. Próxima verificação agendada para ${nextRun}`);
-	
+
 		// 	promotionCheckInterval = setTimeout(checkPromotions, delay);
 		// }
 
