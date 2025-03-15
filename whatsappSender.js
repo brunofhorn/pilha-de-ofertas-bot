@@ -161,24 +161,22 @@ function startWhatsappSender() {
 			console.error("❌ Erro ao verificar promoções:", error);
 		}
 
-		// const now = new Date();
-		// const currentHour = now.getHours();
+		const now = new Date();
+		const currentHour = now.getHours();
 
-		// if (currentHour >= 8 && currentHour < 22) {
-		// 	promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
-		// } else {
-		// 	const nextRun = new Date();
-		// 	nextRun.setHours(8, 0, 0, 0);
-		// 	if (currentHour >= 22) {
-		// 		nextRun.setDate(nextRun.getDate() + 1);
-		// 	}
-		// 	const delay = nextRun.getTime() - now.getTime();
-		// 	console.log(`⏳ Fora do horário. Próxima verificação agendada para ${nextRun}`);
+		if (currentHour >= 8 && currentHour < 22) {
+			promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
+		} else {
+			const nextRun = new Date();
+			nextRun.setHours(8, 0, 0, 0);
+			if (currentHour >= 22) {
+				nextRun.setDate(nextRun.getDate() + 1);
+			}
+			const delay = nextRun.getTime() - now.getTime();
+			console.log(`⏳ Fora do horário. Próxima verificação agendada para ${nextRun}`);
 
-		// 	promotionCheckInterval = setTimeout(checkPromotions, delay);
-		// }
-
-		promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
+			promotionCheckInterval = setTimeout(checkPromotions, delay);
+		}
 	}
 
 	client.initialize();
