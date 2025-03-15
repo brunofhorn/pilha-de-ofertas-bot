@@ -4,7 +4,8 @@ const bodyParser = require("body-parser");
 const promotionRoutes = require("./routes/promotions.js");
 const groupsRoutes = require("./routes/groups.js");
 const servicesRoutes = require("./routes/services.js")
-const qrCodeRoutes = require("./routes/qrcode.js")
+const qrCodeRoutes = require("./routes/qrcode.js");
+const { generateAliExpressAffiliateLink } = require("./functions/generateLinks/aliexpress.js");
 
 const PORT = process.env.PORT || 3000;
 const app = express();

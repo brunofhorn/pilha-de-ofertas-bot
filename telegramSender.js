@@ -23,14 +23,16 @@ async function sendMessageToTelegram(caption, file) {
 		await client.start();
 		console.log("✅ Conectado ao Telegram!");
 
+        const base64Data = file.replace(/^data:image\/\w+;base64,/, "");
+        const fileBuffer = Buffer.from(base64Data, "base64");
+        fileBuffer.name = "image.jpg";
+
         await client.sendFile("@pilha_de_ofertas", {
-            file,
+            file: fileBuffer,
             caption,
         });
 
 		console.log(`📩 Mensagem enviada para pilha de ofertas`);
-		await client.disconnect();
-
         return true
 	} catch (error) {
 		console.error("❌ Erro ao enviar mensagem:", error);

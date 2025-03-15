@@ -12,7 +12,7 @@ const { formatMessage } = require("./functions/formatMessage.js");
 const { generateLink } = require("./functions/generateLink.js");
 const { sendMessageToTelegram } = require("./telegramSender.js");
 
-const GROUP_ID = process.env.GROUP_ID;
+const GROUP_ID = process.env.WHATSAPP_GROUP_ID;
 let client;
 let promotionCheckInterval = null;
 
@@ -66,16 +66,18 @@ function startWhatsappSender() {
 						let options = {};
 						let imagePath = null;
 
-						if (promo.image && fs.existsSync(`./uploads/${promo.image}.jpg`)) {
-							imagePath = `./uploads/${promo.image}.jpg`;
-							const imageBuffer = fs.readFileSync(imagePath);
+						if (promo.image) {
+							const base64Data = promo.image.startsWith("data:")
+								? promo.image.split(",")[1]
+								: promo.image;
 
-							const mimeType = mime.lookup(imagePath) || "image/jpeg";
+							let mimeType = "image/jpeg";
+							const match = promo.image.match(/^data:(image\/[a-z]+);base64,/);
+							if (match) {
+								mimeType = match[1];
+							}
 
-							const media = new MessageMedia(
-								mimeType,
-								imageBuffer.toString("base64")
-							);
+							const media = new MessageMedia(mimeType, base64Data);
 							options = { media };
 						}
 
@@ -105,7 +107,7 @@ function startWhatsappSender() {
 									messageText += `${title}\n\n`;
 								}
 
-								messageText += `${productName}\n\n`;
+								messageText += `*${productName}*\n\n`;
 
 								if (oldPrice) {
 									messageText += `De: ~${formatPrice(oldPrice)}~\n`;
@@ -119,7 +121,8 @@ function startWhatsappSender() {
 									messageText += `(${discount}% OFF)`;
 								}
 
-								messageText += `\n\nCompre aqui: ${affiliateLink}`;
+								messageText += `\n\n🛍️ Compre aqui: ${affiliateLink}`;
+								messageText += `\n\n⚠️ Aproveite que a oferta é por tempo limitado!`
 
 								const message = await client.sendMessage(
 									GROUP_ID,
@@ -130,7 +133,7 @@ function startWhatsappSender() {
 								if (message.id) {
 									const sendMessageTelegram = await sendMessageToTelegram(
 										messageText,
-										imagePath
+										promo.image
 									);
 
 									if (sendMessageTelegram) {
@@ -157,13 +160,6 @@ function startWhatsappSender() {
 											id: promo.id,
 										},
 									});
-
-									// if (
-									// 	promo.image &&
-									// 	fs.existsSync(`./uploads/${promo.image}.jpg`)
-									// ) {
-									// 	fs.unlinkSync(`./uploads/${promo.image}.jpg`);
-									// }
 								}
 							} else {
 								console.error(
@@ -185,6 +181,23 @@ function startWhatsappSender() {
 		} catch (error) {
 			console.error("Erro ao verificar promoções:", error);
 		}
+
+		// const now = new Date();
+		// const currentHour = now.getHours();
+	
+		// if (currentHour >= 8 && currentHour < 22) {
+		// 	promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
+		// } else {
+		// 	const nextRun = new Date();
+		// 	nextRun.setHours(8, 0, 0, 0);
+		// 	if (currentHour >= 22) {
+		// 		nextRun.setDate(nextRun.getDate() + 1);
+		// 	}
+		// 	const delay = nextRun.getTime() - now.getTime();
+		// 	console.log(`⏳ Fora do horário. Próxima verificação agendada para ${nextRun}`);
+	
+		// 	promotionCheckInterval = setTimeout(checkPromotions, delay);
+		// }
 
 		promotionCheckInterval = setTimeout(checkPromotions, 1000 * 60 * 5);
 	}

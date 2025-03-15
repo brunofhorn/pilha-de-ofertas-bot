@@ -65,20 +65,22 @@ const startTelegramMonitor = async () => {
 
 			console.log(`📩 Nova mensagem em ${chat.title}: ${message.message}`);
 
-			let imagePath = null;
-			const imageName = `photo_${
-				message?.id?.toString() ?? crypto.randomUUID()
-			}_${chat?.id?.toString() ?? crypto.randomUUID()}`;
+			const buffer = await client.downloadMedia(message.media);
+			const imageBase64 = buffer.toString("base64");
 
-			if (message.media && message.media.photo) {
-				console.log("📸 Foto detectada! Baixando...");
-				imagePath = `./uploads/${imageName}.jpg`;
-				await client.downloadMedia(message.media, { outputFile: imagePath });
-			}
+			// const imageName = `photo_${
+			// 	message?.id?.toString() ?? crypto.randomUUID()
+			// }_${chat?.id?.toString() ?? crypto.randomUUID()}`;
+
+			// if (message.media && message.media.photo) {
+			// 	console.log("📸 Foto detectada! Baixando...");
+			// 	imagePath = `./uploads/${imageName}.jpg`;
+			// 	await client.downloadMedia(message.media, { outputFile: imagePath });
+			// }
 
 			const response = await api.post("/promotions/", {
 				originalMessage: message.message,
-				image: imageName,
+				image: imageBase64,
 				channel: chat.title,
 			});
 
